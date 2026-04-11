@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCS Exam Planner - BSc CSNT 1st Sem Prep</title>
+    <meta name="description" content="A strategic preparation dashboard for BCS 1st Semester exams. Track schedules, daily tasks, and target topics with glassmorphic visuals.">
+    <meta name="keywords" content="BCS, CSNT, Exam Planner, Study Tracker, BSc CSNT, Pramesh Bhurtel">
+    <meta name="author" content="Pramesh Bhurtel">
+    <meta name="robots" content="index, follow">
+    
+    <!-- SEO & Social Sharing (Open Graph / Twitter) -->
+    <meta property="og:title" content="BCS Exam Planner">
+    <meta property="og:description" content="Strategic study dashboard for BCS 1st Semester exams. Tactical tracking and offline support.">
+    <meta property="og:image" content="assets/icon.png">
+    <meta property="og:url" content="https://prameshbhurtel.com.np">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="assets/icon.png">
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/png" href="assets/icon.png">
+    <link rel="shortcut icon" href="assets/icon.png">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    
+    <!-- PWA & Mobile Optimization -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#060d1f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Link to external libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class', /* Not actively toggled, we use native CSS now */
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Modular CSS Boilerplate -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    
+    <!-- Animated background -->
+    <canvas id="starfield"></canvas>
+
+    <!-- Navigation -->
+    <nav class="app-nav">
+        <div class="fluid-container flex-row justify-between align-center">
+            <div class="nav-logo">
+                BCS <span>PLANNER</span>
+            </div>
+            
+            <div class="desktop-nav">
+                <button class="nav-btn touch-target active" data-target="overview" onclick="nav('overview')">Overview</button>
+                <button class="nav-btn touch-target" data-target="targets" onclick="nav('targets')">Target Topics</button>
+                <button class="nav-btn touch-target" data-target="timetable" onclick="nav('timetable')">Daily Plan</button>
+                <button class="nav-btn touch-target" data-target="survival" onclick="nav('survival')">Exam Protocol</button>
+            </div>
+            
+            <!-- Mobile Menu Toggle -->
+            <button class="nav-btn touch-target mobile-nav-toggle" id="mobile-nav-trigger" onclick="toggleMobileMenu()" aria-label="Open Navigation">
+                <svg id="icon-hamburger" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
+                <svg id="icon-close" style="display: none;" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <!-- Mobile Dropdown -->
+        <div id="mobile-menu" class="mobile-menu">
+            <button class="mobile-nav-btn touch-target active" data-target="overview" onclick="nav('overview')">Overview</button>
+            <button class="mobile-nav-btn touch-target" data-target="targets" onclick="nav('targets')">Target Topics</button>
+            <button class="mobile-nav-btn touch-target" data-target="timetable" onclick="nav('timetable')">Daily Plan</button>
+            <button class="mobile-nav-btn touch-target" data-target="survival" onclick="nav('survival')">Exam Protocol</button>
+        </div>
+    </nav>
+
+    <main class="fluid-container main-content">
+
+        <!-- SECTION: OVERVIEW -->
+        <section id="overview" class="view-section active">
+            
+            <!-- Greeting & Daily Briefing (Injected via JS) -->
+            <div id="greeting-briefing" class="mb-6"></div>
+
+            <div class="flex-row justify-between align-end flex-wrap gap-4" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+                <div style="flex: 1; min-width: 280px;">
+                    <h1 class="text-4xl font-bold font-display tracking-tight text-gradient mb-2">BCS Exam Planner</h1>
+                    <p class="text-lg text-muted" style="color: var(--text-muted)">Strategic dashboard for April 2026 BCS First Semester Exams.</p>
+                </div>
+                
+                <!-- Overall Progress -->
+                <div class="glass-card" style="padding: 1rem; flex: 0 0 auto; width: 100%; max-width: 320px;">
+                    <p class="text-xs font-bold mb-2 uppercase tracking-wider" style="color: var(--accent-indigo)" id="overall-progress-text">0 of 0 tasks complete</p>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="overall-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Stats Row -->
+            <div class="grid-responsive grid-md-2" style="margin-bottom: 2.5rem;">
+                
+                <!-- Countdown Card -->
+                <div class="glass-card flex-col justify-center align-center text-center" style="border-top: 4px solid var(--accent-emerald);">
+                    <h2 class="text-sm font-bold uppercase tracking-widest mb-4" style="color: var(--text-muted)">Time Until First Exam</h2>
+                    
+                    <div id="countdown" class="flex-row justify-center gap-2 mb-4" style="min-height: 5rem;">
+                        <!-- JS injected -->
+                    </div>
+                    
+                    <div class="pill border" style="background: rgba(255,255,255,0.03); border-color: var(--glass-border);" id="countdown-label">
+                        <!-- JS injected -->
+                    </div>
+                </div>
+
+                <!-- Schedule List -->
+                <div class="glass-card" style="border-top: 4px solid var(--accent-indigo);">
+                    <h2 class="text-xl font-bold font-display flex-row justify-between align-center mb-4 pb-3" style="border-bottom: 1px solid var(--glass-border)">
+                        Schedule <span class="pill pill-indigo">1:00 PM - 4:00 PM</span>
+                    </h2>
+                    
+                    <ul class="flex-col gap-2" id="exam-schedule">
+                        <!-- JS injected -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Strategy Charts Row -->
+            <div class="glass-card" style="border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="margin-bottom: 2rem; max-width: 700px;">
+                    <h2 class="text-3xl font-bold font-display mb-3">The Strategy</h2>
+                    <p class="text-lg leading-relaxed" style="color: var(--text-muted);">
+                        The 15-mark questions are where you pass or fail. Master Section C, and you automatically understand the core concepts needed for Section A and B.
+                    </p>
+                </div>
+                
+                <div class="grid-responsive grid-charts">
+                    <div class="glass-card-static" style="padding: 1.5rem;">
+                        <h3 class="text-center font-bold text-lg mb-4" style="color: var(--text-primary)">Exam Weightage</h3>
+                        <div class="chart-container">
+                            <canvas id="marksChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-card-static" style="padding: 1.5rem;">
+                        <h3 class="text-center font-bold text-lg mb-4" style="color: var(--text-primary)">Study Allocation</h3>
+                        <div class="chart-container">
+                            <canvas id="timeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SECTION: TARGET TOPICS -->
+        <section id="targets" class="view-section">
+            <div class="mb-8 pb-4" style="border-bottom: 1px solid var(--glass-border)">
+                <h1 class="text-4xl font-bold font-display tracking-tight text-gradient mb-2">High-Weightage Targets</h1>
+                <p class="text-lg" style="color: var(--text-muted)">Master these topics to secure 45 marks. Tap on target cards to mark them as mastered.</p>
+            </div>
+
+            <!-- Subject Tabs (Horizontal scrolling on mobile) -->
+            <div class="subject-tabs" id="subject-tabs">
+                <!-- JS generated -->
+            </div>
+
+            <!-- Subject Content Area -->
+            <div id="subject-content">
+                <!-- JS generated -->
+            </div>
+        </section>
+
+
+        <!-- SECTION: TIMETABLE -->
+        <section id="timetable" class="view-section">
+            <div class="mb-8 pb-4" style="border-bottom: 1px solid var(--glass-border)">
+                <h1 class="text-4xl font-bold font-display tracking-tight text-gradient mb-2">Daily Timetable</h1>
+                <p class="text-lg" style="color: var(--text-muted)">4 structured blocks per day. Front-load hard topics early.</p>
+            </div>
+
+            <!-- 4-Session Structure Info -->
+            <div class="info-banner">
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-indigo)">Session 1</strong>
+                    <span class="font-semibold block text-xs">9:00 - 11:30</span>
+                    <span class="text-[10px] opacity-60">(Deep Work)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-amber)">Session 2</strong>
+                    <span class="font-semibold block text-xs">12:00 - 2:30</span>
+                    <span class="text-[10px] opacity-60">(Problem Solving)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-emerald)">Session 3</strong>
+                    <span class="font-semibold block text-xs">3:30 - 6:00</span>
+                    <span class="text-[10px] opacity-60">(Review & Practice)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-rose)">Session 4</strong>
+                    <span class="font-semibold block text-xs">7:00 - 9:30</span>
+                    <span class="text-[10px] opacity-60">(Evening Recap)</span>
+                </div>
+            </div>
+
+            <!-- Timetable Grid -->
+            <div class="grid-responsive grid-timetable" id="timetable-container">
+                <!-- JS generated -->
+            </div>
+        </section>
+
+
+        <!-- SECTION: EXAM SURVIVAL -->
+        <section id="survival" class="view-section">
+            <div class="mb-8 pb-4" style="border-bottom: 1px solid var(--glass-border)">
+                <h1 class="text-4xl font-bold font-display tracking-tight text-gradient-warm mb-2">Exam Week Protocol</h1>
+                <p class="text-lg" style="color: var(--text-muted)">April 19 - April 23. Exams from 1:00 PM to 4:00 PM daily. Follow this strict evening routine.</p>
+            </div>
+
+            <!-- Exam Day Structure Info -->
+            <div class="info-banner" style="background: rgba(16,185,129,0.04); border-left: 4px solid var(--accent-emerald);">
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-emerald)">Morning</strong>
+                    <span class="font-semibold block text-xs">7:00 - 11:30</span>
+                    <span class="text-[10px] opacity-60">(Final Reviews)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-rose)">Exam</strong>
+                    <span class="font-semibold block text-xs">1:00 - 4:00</span>
+                    <span class="text-[10px] opacity-60">(High Performance)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-amber)">Recovery</strong>
+                    <span class="font-semibold block text-xs">4:00 - 5:30</span>
+                    <span class="text-[10px] opacity-60">(Rest & Eat)</span>
+                </div>
+                <div class="info-banner-divider"></div>
+                <div class="info-banner-item">
+                    <strong class="block mb-1 text-lg" style="color: var(--accent-indigo)">Night</strong>
+                    <span class="font-semibold block text-xs">5:30 - 10:30</span>
+                    <span class="text-[10px] opacity-60">(Deep Prep)</span>
+                </div>
+            </div>
+
+            <div class="grid-responsive grid-md-2" style="gap: 2rem;">
+                <!-- Morning Review (Swapped to Left/First) -->
+                <div>
+                    <h2 class="text-xl font-bold font-display mb-4 flex-row align-center gap-2">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent-emerald);"></div> 
+                        7:00 AM Morning Reviews
+                    </h2>
+                    <div class="glass-card-static" id="morning-review" style="padding: 0; overflow: hidden;">
+                        <!-- JS generated -->
+                    </div>
+                </div>
+
+                <!-- Nightly Focus (Swapped to Right/Second) -->
+                <div>
+                    <h2 class="text-xl font-bold font-display mb-4 flex-row align-center gap-2">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent-indigo);"></div> 
+                        10:30 PM Nightly Recovery
+                    </h2>
+                    <div class="glass-card-static" id="nightly-focus" style="padding: 0; overflow: hidden;">
+                        <!-- JS generated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Back to Top FAB -->
+    <button id="fab-top" class="touch-target glass-card interactive" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top" style="position: fixed; bottom: 2rem; right: 2rem; padding: 0; min-width: 50px; border-radius: 50%; display: none; z-index: 80; align-items: center; justify-content: center; backdrop-filter: blur(12px); background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3);">
+        <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M5 15l7-7 7 7"></path></svg>
+    </button>
+
+    <footer class="text-center" style="padding-block: 4rem; border-top: 1px solid var(--glass-border); margin-top: auto;">
+        <div class="fluid-container">
+            <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--text-dim);">Designed & Built by <a href="https://prameshbhurtel.com.np" target="_blank" class="hover:text-indigo-400 underline underline-offset-4">Pramesh Bhurtel</a></p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/countdown.js"></script>
+    <script src="js/targets.js"></script>
+    <script src="js/timetable.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

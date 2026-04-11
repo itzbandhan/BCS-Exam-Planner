@@ -1,0 +1,92 @@
+/* =============================================================
+   BASE.CSS
+   CSS Reset, Custom Properties & Base Typography
+   ============================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  /* Colors */
+  --bg-base:       #060d1f;
+  --bg-surface:    #0d1628;
+  --glass-bg:      rgba(17, 30, 54, 0.55);
+  --glass-border:  rgba(255, 255, 255, 0.08);
+  --text-primary:  #e2e8f0;
+  --text-muted:    #64748b;
+  
+  /* Accents */
+  --accent-indigo: #6366f1;
+  --accent-emerald:#10b981;
+  --accent-amber:  #f59e0b;
+  --accent-rose:   #f43f5e;
+  --accent-violet: #8b5cf6;
+
+  /* Fluid Spacing & Sizes */
+  --nav-height:    4.5rem;   /* ~72px, nice scalable touch space */
+  --fluid-gap:     1.5rem;   /* Standard grid gap */
+  --fluid-pad:     5vw;      /* Edges padding, shrinks smoothly to mobile */
+}
+
+/* CSS Reset - Mobile First */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px; /* Base 1rem => 16px */
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport for modern mobile */
+  overflow-x: hidden;
+  line-height: 1.5;
+  
+  /* Animated Deep Space Gradient */
+  background-image:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(99,102,241,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(16,185,129,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(139,92,246,0.05) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Fluid Media Strategy */
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, h6 { line-height: 1.2; font-family: 'Space Grotesk', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Interactive accessibility reset */
+button, a {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Starfield bg layer */
+#starfield {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Native scrollbars */
+::-webkit-scrollbar { width: 0.4rem; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2rem; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-indigo); }

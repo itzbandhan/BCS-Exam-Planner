@@ -1,0 +1,440 @@
+/* =============================================================
+   COMPONENTS.CSS
+   UI Components: Cards, Buttons, Inputs, Badges
+   ============================================================= */
+
+/* ── Typography & Gradients ── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-emerald) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-warm {
+  background: linear-gradient(135deg, var(--accent-amber), var(--accent-rose));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Interactive Base (A11y Touch Targets) ── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Buttons ── */
+.nav-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.nav-btn:hover {
+  color: var(--text-primary);
+  background: rgba(99,102,241,0.08);
+}
+.nav-btn.active {
+  color: #fff;
+  background: rgba(99,102,241,0.2);
+  border-color: rgba(99,102,241,0.35);
+}
+
+.mobile-nav-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 1rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  transition: all 0.2s;
+}
+.mobile-nav-btn:hover {
+  color: var(--text-primary);
+  background: rgba(99,102,241,0.08);
+}
+.mobile-nav-btn.active {
+  color: #fff;
+  background: rgba(99,102,241,0.2);
+}
+
+/* ── Glass Cards ── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+.glass-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.glass-card.interactive { cursor: pointer; }
+
+/* ── Custom Timetable Checkbox Row ── */
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px; /* A11y touch target */
+}
+.task-row:hover { 
+  background: rgba(255,255,255,0.05); 
+  border-color: var(--glass-border); 
+}
+.task-row.completed { 
+  opacity: 0.6; 
+}
+.task-row.completed .task-text { 
+  text-decoration: line-through; 
+  color: var(--text-muted); 
+}
+
+/* Visually hidden native checkbox */
+.task-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.custom-check {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1.5px solid var(--text-dim);
+  background: rgba(30,41,59,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+.task-row:hover .custom-check { border-color: var(--accent-indigo); }
+.task-row.completed .custom-check {
+  background: transparent;
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+}
+
+.check-svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--accent-emerald);
+  stroke-width: 2.5;
+  fill: none;
+  opacity: 0;
+  transform: scale(0.5) rotate(-10deg);
+  transition: opacity 0.25s, transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.task-row.completed .check-svg {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* ── Locked Timetable Day ── */
+.day-locked {
+  opacity: 0.5;
+  filter: grayscale(40%);
+}
+.locked-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.75rem 1.5rem;
+  border-radius: 99px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 20;
+  color: var(--text-muted);
+}
+
+/* ── Progress Bars ── */
+.progress-track {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+  width: 100%;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent-indigo), var(--accent-emerald));
+  transition: width 0.8s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Pills & Badges ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.pill-indigo  { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+.pill-emerald { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+.pill-amber   { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+.pill-rose    { background: rgba(244,63,94,0.12);  color: #fca5a5; border: 1px solid rgba(244,63,94,0.25); }
+.pill-violet  { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+
+/* ── Subject Tabs ── */
+.subject-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto; /* scrollable on mobile */
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.subject-tabs::-webkit-scrollbar { height: 4px; }
+.subject-tab {
+  padding: 0.5rem 1.2rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  /* A11y */
+  min-height: 44px;
+}
+.subject-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.subject-tab.active-tab {
+  color: #fff;
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+.tab-content-area {
+  border: 1px solid var(--glass-border);
+  border-radius: 0 0.5rem 0.5rem 0.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 1.5rem;
+  min-height: 300px;
+}
+
+/* ── Target Topic Cards ── */
+.target-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.025);
+  cursor: pointer;
+  transition: all 0.25s;
+  min-height: 44px; /* A11y */
+}
+.target-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.15);
+}
+.target-card.mastered {
+  background: rgba(16,185,129,0.06);
+  border-color: rgba(16,185,129,0.45);
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
+}
+.mastery-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: all 0.3s;
+}
+
+/* ── Exam Schedule List Items ── */
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.02);
+  transition: all 0.2s;
+  min-height: 44px;
+}
+.schedule-item.next-exam {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.3);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.06);
+}
+
+/* ── Countdown Timer Components ── */
+.countdown-wrapper {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.countdown-unit-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.countdown-digit {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+@media (min-width: 768px) {
+  .countdown-digit { font-size: 3.75rem; }
+}
+.countdown-unit-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+.countdown-colon {
+  font-size: 2.25rem;
+  color: #475569;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Footer Quotes ── */
+.footer-quote {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ── Toast Notifications ── */
+.toast-msg {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 0.85rem 1.5rem;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 99px;
+  color: #fff;
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+.toast-msg.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast-locked { border-color: var(--accent-amber); }
+
+/* ── Briefing Action Button ── */
+.brief-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.5rem;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.brief-action-btn:hover {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+  transform: translateX(4px);
+}
+
+/* ── Info Banners (Timetable & survival) ── */
+.info-banner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--glass-border);
+  margin-bottom: 2rem;
+}
+.info-banner-item {
+  flex: 1 1 140px;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  min-width: 120px;
+}
+.info-banner-divider {
+  width: 1px;
+  background: var(--glass-border);
+  min-height: 2.5rem;
+  align-self: center;
+}
+@media (max-width: 640px) {
+  .info-banner-divider { display: none; }
+  .info-banner-item { flex: 1 1 40%; }
+}
+
+.version-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* ── Final Polish: Transitions ── */
+@keyframes subjectSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-subject-in {
+  animation: subjectSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+
+

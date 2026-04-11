@@ -1,0 +1,141 @@
+/* =============================================================
+   LAYOUT.CSS
+   Fluid Grids, Flexbox Structures & Media Queries
+   ============================================================= */
+
+/* ── Container ── */
+.fluid-container {
+  width: 100%;
+  /* Fluid padding scaling automatically */
+  padding-inline: var(--fluid-pad);
+  margin-inline: auto;
+  max-width: 1200px;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Flex Alignment Utilities ── */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.align-start { align-items: flex-start; }
+.align-center { align-items: center; }
+
+/* ── Main App Layout ── */
+.app-nav {
+  height: var(--nav-height);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(6, 13, 31, 0.85);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+}
+
+.main-content {
+  padding-block: 2rem 5rem;
+}
+
+/* Base grids (Mobile First) */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: 1fr; /* Single column on mobile */
+  gap: var(--fluid-gap);
+}
+
+/* Sections Display Toggling */
+.view-section { 
+  display: none; 
+}
+.view-section.active {
+  display: block;
+  animation: fadeSlideUp 0.45s cubic-bezier(.4,0,.2,1) forwards;
+}
+
+/* Mobile Nav Menu Strategy */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  padding-top: var(--nav-height);
+  width: 100%;
+  height: 100vh;
+  background: rgba(6, 13, 31, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  z-index: 90;
+  animation: fadeSlideUp 0.3s cubic-bezier(.4,0,.2,1) forwards;
+}
+.mobile-menu.open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-inline: 2rem;
+}
+
+.desktop-nav {
+  display: none; /* hidden on small mobile */
+}
+
+/* =========================================================
+   MEDIA QUERIES - BREAKPOINTS STRATEGY
+   ========================================================= */
+
+/* Tablet & Up (min-width: 768px) */
+@media (min-width: 768px) {
+  :root {
+    --fluid-pad: 2rem; /* Lock max padding */
+  }
+
+  /* Two column generic layouts */
+  .grid-md-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Specific Layouts */
+  .grid-stats { grid-template-columns: repeat(2, 1fr); }
+  .grid-timetable { grid-template-columns: repeat(2, 1fr); }
+  .grid-survival { grid-template-columns: repeat(3, 1fr); }
+  
+  .desktop-nav {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .mobile-nav-toggle {
+    display: none !important; /* Force hide over touch-target layout */
+  }
+}
+
+/* Desktop & Up (min-width: 1024px) */
+@media (min-width: 1024px) {
+  .grid-timetable { 
+    grid-template-columns: repeat(4, 1fr); /* 4 columns on large screens */
+  }
+
+  /* Chart Layouts */
+  .grid-charts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+/* Print Media Layout Reset */
+@media print {
+  body { background: white !important; color: black !important; }
+  .app-nav, #starfield, .mobile-menu { display: none !important; }
+  .view-section { display: block !important; page-break-before: always; }
+}
