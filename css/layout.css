@@ -9,7 +9,7 @@
   /* Fluid padding scaling automatically */
   padding-inline: var(--fluid-pad);
   margin-inline: auto;
-  max-width: 1200px;
+  max-width: 75rem;
   position: relative;
   z-index: 10;
 }
@@ -25,10 +25,6 @@
   display: flex;
   flex-direction: column;
 }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.align-start { align-items: flex-start; }
-.align-center { align-items: center; }
 
 /* ── Main App Layout ── */
 .app-nav {
@@ -73,8 +69,8 @@
   width: 100%;
   height: 100vh;
   background: rgba(6, 13, 31, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(1.5rem);
+  -webkit-backdrop-filter: blur(1.5rem);
   z-index: 90;
   animation: fadeSlideUp 0.3s cubic-bezier(.4,0,.2,1) forwards;
 }
@@ -91,15 +87,50 @@
   display: none; /* hidden on small mobile */
 }
 
+/* Navbar Right Icons */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 0.0625rem solid transparent;
+  color: var(--text-muted);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.icon-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.hide-on-mobile { display: none !important; }
+
 /* =========================================================
    MEDIA QUERIES - BREAKPOINTS STRATEGY
    ========================================================= */
+
+/* Mobile (sm) */
+@media (min-width: 640px) {
+  .sm\:flex-row { flex-direction: row; }
+  .sm\:items-center { align-items: center; }
+}
 
 /* Tablet & Up (min-width: 768px) */
 @media (min-width: 768px) {
   :root {
     --fluid-pad: 2rem; /* Lock max padding */
   }
+
+  /* Responsive Tailwind Polyfills */
+  .md\:hidden { display: none !important; }
 
   /* Two column generic layouts */
   .grid-md-2 {
@@ -114,6 +145,9 @@
   .desktop-nav {
     display: flex;
     gap: 0.5rem;
+  }
+  .hide-on-mobile {
+    display: flex !important;
   }
   .mobile-nav-toggle {
     display: none !important; /* Force hide over touch-target layout */
@@ -136,6 +170,6 @@
 /* Print Media Layout Reset */
 @media print {
   body { background: white !important; color: black !important; }
-  .app-nav, #starfield, .mobile-menu { display: none !important; }
+  .app-nav, .mobile-menu { display: none !important; }
   .view-section { display: block !important; page-break-before: always; }
 }

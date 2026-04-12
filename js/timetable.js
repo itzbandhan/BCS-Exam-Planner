@@ -1,6 +1,5 @@
-// ============================================================
 // TIMETABLE.JS — Daily checklist + progress tracking
-// FIX: Rendered once (idempotent), state stored in localStorage
+// FIX: Rendered once (idempotent), state stored in PlannerStorage
 // ============================================================
 
 let _timetableRendered = false;
@@ -12,9 +11,7 @@ function renderTimetable() {
     const container = document.getElementById('timetable-container');
     if (!container) return;
 
-    const todayStr = new Date().toDateString();
     let html = '';
-
     timetableData.forEach((dayObj, dIdx) => {
         const isToday  = new Date().toDateString() === new Date(dayObj.date).toDateString();
         const isLocked = isDateLocked(dayObj.date);
@@ -42,9 +39,9 @@ function renderTimetable() {
 
         dayObj.sessions.forEach((sess, sIdx) => {
             const uid       = `check-${dIdx}-${sIdx}`;
-            const isChecked = localStorage.getItem(uid) === 'true';
+            const isChecked = PlannerStorage.get(uid) === 'true';
             html += `
-                <div class="task-row ${isChecked ? 'completed' : ''}" id="row-${uid}" onclick="toggleTask('${uid}', this)">
+                <div class="task-row ${isChecked ? 'completed' : ''}" id="row-${uid}" onclick="toggleTask('${uid}', this, ${dIdx})">
                     <input type="checkbox" id="${uid}" ${isChecked ? 'checked' : ''} class="task-check" aria-label="${sess.sub}: ${sess.task}">
                     <div class="custom-check">
                         <svg class="check-svg" viewBox="0 0 12 10">
@@ -52,11 +49,11 @@ function renderTimetable() {
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex flex-wrap gap-1.5 mb-1">
+                        <div class="flex flex-wrap gap-1-5 mb-1">
                             <span class="pill pill-indigo">${sess.s}</span>
                             <span class="pill pill-violet">${sess.sub}</span>
                         </div>
-                        <p class="task-text text-xs leading-relaxed" style="color:#94a3b8">${sess.task}</p>
+                        <p class="task-text text-xs leading-relaxed text-slate-400">${sess.task}</p>
                     </div>
                 </div>`;
         });
@@ -85,7 +82,7 @@ function renderTimetable() {
     }, 50);
 }
 
-function toggleTask(uid, rowEl) {
+function toggleTask(uid, rowEl, dIdx) {
     const checkbox = document.getElementById(uid);
     if (!checkbox) return;
 
@@ -103,23 +100,29 @@ function toggleTask(uid, rowEl) {
     // Toggle state
     const newChecked = !checkbox.checked;
     checkbox.checked = newChecked;
-    localStorage.setItem(uid, newChecked);
-
-    if (newChecked) showToast("Task marked as complete!", 'success');
+    PlannerStorage.set(uid, newChecked);
 
     // Toggle CSS class for visual strike-through + check icon
     rowEl.classList.toggle('completed', newChecked);
 
-    updateAllProgress();
-}
+    // Check if the entire day is completed
+    if (newChecked && dIdx !== undefined) {
+        const dayObj = timetableData[dIdx];
+        let allCompleted = true;
+        for (let sIdx = 0; sIdx < dayObj.sessions.length; sIdx++) {
+            if (PlannerStorage.get(`check-${dIdx}-${sIdx}`) !== 'true') {
+                allCompleted = false;
+                break;
+            }
+        }
+        if (allCompleted) {
+            showToast("Day Complete! Excellent work.", 'success');
+            if (typeof triggerConfetti === 'function') triggerConfetti();
+        } else {
+            showToast("Task marked as complete!", 'success');
+        }
+    }
 
-function handleTaskCheck() {
-    // Fallback for any direct checkbox change events (accessibility)
-    document.querySelectorAll('.task-check').forEach(box => {
-        localStorage.setItem(box.id, box.checked);
-        const row = document.getElementById(`row-${box.id}`);
-        if (row) row.classList.toggle('completed', box.checked);
-    });
     updateAllProgress();
 }
 
@@ -127,40 +130,66 @@ function updateAllProgress() {
     let totalTasks     = 0;
     let completedTasks = 0;
 
-    timetableData.forEach((dayObj, dIdx) => {
-        const dayTotal    = dayObj.sessions.length;
+    const tData = window.timetableData || [];
+    const sData = window.subjectsData || {};
+
+    tData.forEach((dayObj, dIdx) => {
         let   dayComplete = 0;
 
         dayObj.sessions.forEach((_, sIdx) => {
             totalTasks++;
-            if (localStorage.getItem(`check-${dIdx}-${sIdx}`) === 'true') {
+            if (PlannerStorage.get(`check-${dIdx}-${sIdx}`) === 'true') {
                 completedTasks++;
                 dayComplete++;
             }
         });
-
-        const pct    = dayTotal > 0 ? (dayComplete / dayTotal) * 100 : 0;
-        const barEl  = document.getElementById(`progress-bar-${dIdx}`);
-        const textEl = document.getElementById(`progress-text-${dIdx}`);
-        if (barEl)  barEl.style.width   = `${pct}%`;
-        if (textEl) textEl.textContent  = `${Math.round(pct)}%`;
+        
+        // Update dashboard bubble (mobile/desktop counters if they exist)
+        const dot = document.getElementById(`dot-${dIdx}`);
+        if (dot) {
+            dot.classList.toggle('dot-completed', dayComplete === dayObj.sessions.length);
+        }
     });
 
-    // Add Survival Tasks to Overall Count
-    eveningFocus.forEach((_, idx) => {
+    // Add Mastery Targets to Overall Count
+    Object.keys(sData).forEach(key => {
+        const sub = sData[key];
+        totalTasks += (sub.targets || []).length;
+        (sub.targets || []).forEach(target => {
+            if (PlannerStorage.get(`mastery_${target.id}`) === 'true') completedTasks++;
+        });
+    });
+
+    // Also count Morning/Night review tasks
+    (window.eveningFocus || []).forEach((_, idx) => {
         totalTasks++;
-        if (localStorage.getItem(`night-${idx}`) === 'true') completedTasks++;
+        if (PlannerStorage.get(`night-${idx}`) === 'true') completedTasks++;
     });
-
-    morningReview.forEach((_, idx) => {
+    (window.morningReview || []).forEach((_, idx) => {
         totalTasks++;
-        if (localStorage.getItem(`morn-${idx}`) === 'true') completedTasks++;
+        if (PlannerStorage.get(`morn-${idx}`) === 'true') completedTasks++;
     });
 
-    // Update overview progress widget
-    const overallPct = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    const ovBar  = document.getElementById('overall-progress-bar');
-    const ovText = document.getElementById('overall-progress-text');
-    if (ovBar)  ovBar.style.width  = `${overallPct}%`;
-    if (ovText) ovText.textContent = `${completedTasks} of ${totalTasks} tasks completed`;
+    const pct = totalTasks > 0 ? Math.round((completedTasks/totalTasks)*100) : 0;
+    
+    // Update Overview Cards
+    const barEl  = document.getElementById('overall-progress-bar');
+    const textEl = document.getElementById('overall-progress-text');
+    
+    if (barEl)  barEl.style.width = `${pct}%`;
+    if (textEl) textEl.textContent = `${completedTasks} of ${totalTasks} tasks complete`;
 }
+
+// Subscribe to storage updates for multi-device sync
+PlannerStorage.addListener(() => {
+    // If we're on the timetable section, we need to refresh the checked states
+    // but without wiping the whole DOM if possible. 
+    // For now, re-render is safest if idempotent.
+    if (document.getElementById('timetable') && document.getElementById('timetable').classList.contains('active')) {
+        _timetableRendered = false; // Reset render guard
+        renderTimetable();
+    } else {
+        updateAllProgress();
+    }
+});
+

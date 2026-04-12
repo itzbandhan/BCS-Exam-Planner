@@ -1,10 +1,9 @@
 // ============================================================
-// APP.JS — Orchestration, routing, starfield, footer quotes
+// APP.JS — Orchestration, routing, and UI lifecycle
 // ============================================================
 
 // ── Initialise on load ──
 window.addEventListener('load', () => {
-    initStarfield();
     renderSubjects();
     renderTimetable();
     renderExamSchedule();
@@ -13,6 +12,12 @@ window.addEventListener('load', () => {
     renderGreetingAndBrief();
     initCountdown();
     setupFAB();
+    
+    // Notes module
+    if (typeof initNotes === 'function') initNotes();
+    
+    if (typeof checkUrgency === 'function') checkUrgency();
+    
     nav('overview');              // Default section
 
     // PWA Service Worker Registration
@@ -23,7 +28,7 @@ window.addEventListener('load', () => {
 
     // Initialize New Premium Features
     initConsoleSignature();
-    initSwipeNavigation();
+    initKeyboardShortcuts();
 });
 
 // ── Navigation ──
@@ -91,13 +96,15 @@ function renderExamSchedule() {
     const now = Date.now();
     let nextFound = false;
 
-    el.innerHTML = examSchedule.map(exam => {
+    const eSchedule = window.examSchedule || [];
+    el.innerHTML = eSchedule.map((exam, idx) => {
         const isPast  = exam.target.getTime() < now;
         const isNext  = !nextFound && !isPast;
         if (isNext) nextFound = true;
+        const staggerClass = idx < 8 ? `stagger-${idx + 1}` : '';
 
         return `
-        <div class="schedule-item ${isNext ? 'next-exam' : ''} ${isPast ? 'opacity-40' : ''}">
+        <div class="schedule-item animate-fade-slide-up ${staggerClass} ${isNext ? 'next-exam' : ''} ${isPast ? 'opacity-40' : ''}">
             <div>
                 <span class="font-semibold text-sm ${isNext ? 'text-indigo-300' : 'text-slate-400'}">${exam.date}</span>
                 <span class="mx-2 text-slate-700">—</span>
@@ -120,49 +127,89 @@ function renderGreetingAndBrief() {
 
     const now = new Date();
     const todayStr = now.toDateString();
-    let todayData = timetableData.find(d => new Date(d.date).toDateString() === todayStr);
-    const nextExam = examSchedule.find(e => e.target.getTime() > now.getTime());
+    
+    const tData = window.timetableData || [];
+    const eSchedule = window.examSchedule || [];
+    const sData = window.subjectsData || {};
+
+    let todayData = tData.find(d => new Date(d.date).toDateString() === todayStr);
+    const nextExam = eSchedule.find(e => e.target.getTime() > now.getTime());
     
     let briefContent = '';
     
     if (todayData) {
         const total = todayData.sessions.length;
         let comp = 0;
-        const dIdx = timetableData.indexOf(todayData);
+        const dIdx = tData.indexOf(todayData);
         todayData.sessions.forEach((_, sIdx) => {
-            if (localStorage.getItem(`check-${dIdx}-${sIdx}`) === 'true') comp++;
+            if (PlannerStorage.get(`check-${dIdx}-${sIdx}`) === 'true') comp++;
         });
         
         const pct = total > 0 ? Math.round((comp / total) * 100) : 0;
-        const guidance = pct === 100 ? "Level Complete. Time to recover." : (pct > 50 ? "Final stretch. Stay sharp." : "High energy block required now.");
         const streak = calculateStreak();
         const randomTip = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
 
         const isExamDay = nextExam && now.toDateString() === nextExam.target.toDateString();
         
+        let daysLeftText = '';
+        if (nextExam && !isExamDay) {
+            const timeDiff = nextExam.target.getTime() - now.getTime();
+            const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+            if (daysLeft >= 0) {
+                daysLeftText = `<span class="pill pill-rose">🚨 ${daysLeft} Days to ${nextExam.subject}</span>`;
+            }
+        }
+
+        // Find a pending target topic
+        let nxtTarget = "All Targets Mastered";
+        for (let key in sData) {
+            let pending = (sData[key].targets || []).find(t => PlannerStorage.get(`mastery_${t.id}`) !== 'true');
+            if (pending) {
+                nxtTarget = pending.title;
+                break;
+            }
+        }
+        
         briefContent = `
-            <div class="mt-4 p-4 border" style="border-radius: 0.75rem; border-color: rgba(99,102,241,0.2); background: rgba(99,102,241,0.05);">
-                <div class="flex justify-between items-center mb-3">
+            <div class="mt-4 p-4 border rounded-lg border-indigo-500-30" style="background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <span class="font-bold text-sm tracking-wide">TODAY'S INTEL: <span style="color:var(--accent-indigo)">${todayData.day}</span></span>
-                    <div class="flex items-center gap-3">
-                        ${streak > 0 ? `<span class="pill pill-amber" title="Operational Streak">🔥 ${streak} DAY STREAK</span>` : ''}
+                    <div class="flex items-center gap-2">
+                        ${streak > 0 ? `<span class="pill pill-amber" title="Operational Streak">🔥 ${streak} DAY STRK</span>` : ''}
                         <span class="pill pill-indigo">${pct}% DONE</span>
+                        ${daysLeftText}
                     </div>
                 </div>
                 
-                <p class="text-sm text-slate-400 mb-3">
-                    You have <strong class="text-white">${total - comp} sessions</strong> remaining. 
-                    Main Focus: <strong class="text-white">${todayData.sessions[0]?.sub || 'Review'}</strong>. 
-                </p>
+                <div class="grid-responsive grid-md-2 gap-3 mb-4">
+                    <div class="p-3 rounded-lg border-l-[3px] border-indigo-500" style="background: rgba(255,255,255,0.03)">
+                        <p class="text-[10px] uppercase tracking-widest text-indigo-400 mb-1 font-bold">Action Status</p>
+                        <p class="text-xs text-slate-300">
+                            ${total - comp} sessions remaining. Main Focus: <strong class="text-white">${todayData.sessions[0]?.sub || 'Review'}</strong>.
+                        </p>
+                    </div>
+                    <div class="p-3 rounded-lg border-l-[3px] border-emerald-500" style="background: rgba(255,255,255,0.03)">
+                        <p class="text-[10px] uppercase tracking-widest text-emerald-400 mb-1 font-bold">Prime Target</p>
+                        <p class="text-xs text-slate-300">
+                            You need to master: <strong class="text-white">${nxtTarget}</strong>
+                        </p>
+                    </div>
+                </div>
 
-                <div class="p-3 bg-white/5 rounded-lg mb-4 border-l-2 border-indigo-500/30">
-                    <p class="text-[10px] uppercase tracking-widest text-indigo-400 mb-1 font-bold">Tactical Tip</p>
-                    <p class="text-xs text-slate-300 italic">${randomTip}</p>
+                <div class="p-3 rounded-lg mb-4 border-l-[3px] border-slate-600" style="background: rgba(255,255,255,0.02)">
+                    <p class="text-[10px] uppercase tracking-widest text-amber-400 mb-1 font-bold">Tactical Tip</p>
+                    <p class="text-xs text-slate-300 italic">"${randomTip}"</p>
                 </div>
                 
-                <button class="brief-action-btn" style="width: 100%; justify-content: center;" onclick="nav('${isExamDay ? 'survival' : 'timetable'}'); ${isExamDay ? '' : `setTimeout(() => document.getElementById('anchor-day-${dIdx}')?.scrollIntoView({behavior:'smooth'}), 100)`}">
-                    ${isExamDay ? 'View Exam Routine' : "Jump to Today's Tasks"}
-                </button>
+                <div class="flex gap-2 mt-2">
+                    <button class="brief-action-btn flex-1 justify-center" onclick="nav('${isExamDay ? 'survival' : 'timetable'}'); ${isExamDay ? '' : `setTimeout(() => document.getElementById('anchor-day-${dIdx}')?.scrollIntoView({behavior:'smooth'}), 100)`}">
+                        ${isExamDay ? 'Exam Protocol' : "Jump to Tasks"}
+                    </button>
+                    <button class="brief-action-btn flex-1 justify-center" onclick="nav('notes');" style="border-color: rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.05);">
+                        <svg width="14" height="14" fill="none" class="mr-2" stroke="var(--accent-violet)" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        AI Study Hub
+                    </button>
+                </div>
             </div>
         `;
     } else {
@@ -187,18 +234,20 @@ function calculateStreak() {
     let streak = 0;
     const now  = new Date();
     
+    const tData = window.timetableData || [];
+    
     // Check backwards from today
     for (let i = 0; i < 30; i++) {
         const d = new Date();
         d.setDate(now.getDate() - i);
         const dStr = d.toDateString();
-        const dIdx = timetableData.findIndex(day => new Date(day.date).toDateString() === dStr);
+        const dIdx = tData.findIndex(day => new Date(day.date).toDateString() === dStr);
         
         if (dIdx !== -1) {
             let dayDone = false;
             // A day counts if at least one session is checked
-            timetableData[dIdx].sessions.forEach((_, sIdx) => {
-                if (localStorage.getItem(`check-${dIdx}-${sIdx}`) === 'true') dayDone = true;
+            tData[dIdx].sessions.forEach((_, sIdx) => {
+                if (PlannerStorage.get(`check-${dIdx}-${sIdx}`) === 'true') dayDone = true;
             });
             
             if (dayDone) streak++;
@@ -217,11 +266,12 @@ function renderNightlyFocus() {
 
     el.innerHTML = eveningFocus.map((item, idx) => {
         const uid = `night-${idx}`;
-        const isChecked = localStorage.getItem(uid) === 'true';
+        const isChecked = PlannerStorage.get(uid) === 'true';
         const isLocked = isDateLocked(item.date);
+        const staggerClass = idx < 8 ? `stagger-${idx + 1}` : '';
         
         return `
-        <div class="task-row ${isChecked ? 'completed' : ''} ${isLocked ? 'day-locked' : ''}" id="row-${uid}" onclick="toggleSurvivalTask('${uid}', this, ${idx}, 'night')" style="border-radius: 0; border-bottom: 1px solid var(--glass-border); position: relative;">
+        <div class="task-row animate-fade-slide-up ${staggerClass} ${isChecked ? 'completed' : ''} ${isLocked ? 'day-locked' : ''}" id="row-${uid}" onclick="toggleSurvivalTask('${uid}', this, ${idx}, 'night')" style="border-radius: 0; border-bottom: 1px solid var(--glass-border); position: relative;">
             <div class="custom-check">
                 <svg class="check-svg" viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
             </div>
@@ -244,11 +294,12 @@ function renderMorningReview() {
 
     el.innerHTML = morningReview.map((item, idx) => {
         const uid = `morn-${idx}`;
-        const isChecked = localStorage.getItem(uid) === 'true';
+        const isChecked = PlannerStorage.get(uid) === 'true';
         const isLocked = isDateLocked(item.date);
+        const staggerClass = idx < 8 ? `stagger-${idx + 1}` : '';
         
         return `
-        <div class="task-row ${isChecked ? 'completed' : ''} ${isLocked ? 'day-locked' : ''}" id="row-${uid}" onclick="toggleSurvivalTask('${uid}', this, ${idx}, 'morn')" style="border-radius: 0; border-bottom: 1px solid var(--glass-border); position: relative;">
+        <div class="task-row animate-fade-slide-up ${staggerClass} ${isChecked ? 'completed' : ''} ${isLocked ? 'day-locked' : ''}" id="row-${uid}" onclick="toggleSurvivalTask('${uid}', this, ${idx}, 'morn')" style="border-radius: 0; border-bottom: 1px solid var(--glass-border); position: relative;">
             <div class="custom-check">
                 <svg class="check-svg" viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
             </div>
@@ -273,10 +324,10 @@ function toggleSurvivalTask(uid, rowEl, idx, type) {
         return;
     }
 
-    const isCurrentlyChecked = localStorage.getItem(uid) === 'true';
+    const isCurrentlyChecked = PlannerStorage.get(uid) === 'true';
     const newChecked = !isCurrentlyChecked;
     
-    localStorage.setItem(uid, newChecked);
+    PlannerStorage.set(uid, newChecked);
     rowEl.classList.toggle('completed', newChecked);
     if (newChecked) showToast("Protocol objective achieved!", 'success');
     updateAllProgress(); // Trigger global progress update
@@ -284,61 +335,7 @@ function toggleSurvivalTask(uid, rowEl, idx, type) {
 
 
 
-// ── Animated star-field canvas ──
-function initStarfield() {
-    const canvas = document.getElementById('starfield');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    let stars  = [];
-    let W, H;
-
-    function resize() {
-        W = canvas.width  = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-    }
-
-    function createStars(n) {
-        stars = Array.from({ length: n }, () => ({
-            x:  Math.random() * W,
-            y:  Math.random() * H,
-            r:  Math.random() * 1.3 + 0.2,
-            a:  Math.random(),
-            da: (Math.random() - 0.5) * 0.005,
-            vx: (Math.random() - 0.5) * 0.04,
-            vy: (Math.random() - 0.5) * 0.04,
-        }));
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, W, H);
-        stars.forEach(s => {
-            s.a  += s.da;
-            if (s.a < 0 || s.a > 1) s.da *= -1;
-            s.x  = (s.x + s.vx + W) % W;
-            s.y  = (s.y + s.vy + H) % H;
-
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(148,163,184,${s.a * 0.7})`;
-            ctx.fill();
-        });
-        requestAnimationFrame(draw);
-    }
-
-    resize();
-    createStars(200);
-    draw();
-
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            resize();
-            createStars(200);
-        }, 200); // Throttled to 200ms
-    });
-}
+// End of App.js logic
 
 // ── Final Premium Polish: Console Signature ──
 function initConsoleSignature() {
@@ -348,49 +345,40 @@ function initConsoleSignature() {
     console.log('%c[SYSTEM] Initializing strategic study environment...', 'color: #10b981; font-family: monospace;');
 }
 
-// ── Final Premium Polish: Swipe Navigation ──
-function initSwipeNavigation() {
-    const main = document.querySelector('main');
-    if (!main) return;
+// Swipe navigation removed per user request (sensitivity issues)
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    const sections = ['overview', 'targets', 'timetable', 'survival'];
+// ── Keyboard Shortcuts ──
+function initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Don't trigger if user is typing in an input/textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-    main.addEventListener('touchstart', e => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    main.addEventListener('touchend', e => {
-        const touchEndX = e.changedTouches[0].screenX;
-        const touchEndY = e.changedTouches[0].screenY;
-        
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-
-        // Threshold of 100px for intentional swipe, and ensure it's mostly horizontal
-        if (Math.abs(deltaX) > 100 && Math.abs(deltaX) > Math.abs(deltaY)) {
-            const activeSec = document.querySelector('.view-section.active');
-            if (!activeSec) return;
-
-            const currentIndex = sections.indexOf(activeSec.id);
-            if (currentIndex === -1) return;
-
-            if (deltaX < 0) {
-                // Swipe Left -> Next Section
-                if (currentIndex < sections.length - 1) {
-                    nav(sections[currentIndex + 1]);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            } else {
-                // Swipe Right -> Previous Section
-                if (currentIndex > 0) {
-                    nav(sections[currentIndex - 1]);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }
+        // Number keys 1-5 for sections
+        const key = parseInt(e.key);
+        if (key >= 1 && key <= 5) {
+            nav(SECTIONS[key - 1]);
         }
-    }, { passive: true });
+
+        // Help modal trigger
+        if (e.key === '?') {
+            showToast("Shortcuts: 1-5 to navigate sections, Ctrl+E export.", "info");
+        }
+
+        // Export data
+        if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+            e.preventDefault();
+            if (typeof exportData === 'function') exportData();
+        }
+    });
 }
+
+// Global Cloud Update Listener
+PlannerStorage.addListener(() => {
+    // Re-render everything that might have changed
+    renderGreetingAndBrief();
+    renderExamSchedule();
+    renderNightlyFocus();
+    renderMorningReview();
+    if (typeof updateAllProgress === 'function') updateAllProgress();
+});
 

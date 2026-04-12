@@ -77,3 +77,167 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 500);
     }, 3500);
 }
+
+/**
+ * Debounce helper for inputs
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Settings Modal Logic
+ */
+function toggleSettings() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    
+    // Load current values on open
+    if (!modal.classList.contains('active')) {
+        const keyInput = document.getElementById('gemini-key');
+        const syncInput = document.getElementById('sync-key');
+        const configInput = document.getElementById('firebase-config');
+        
+        if (keyInput) keyInput.value = PlannerStorage.get('gemini_api_key') || '';
+        if (syncInput) syncInput.value = PlannerStorage.get('sync_key') || '';
+        if (configInput) configInput.value = localStorage.getItem('firebase_config') || '';
+    }
+    
+    modal.classList.toggle('active');
+}
+
+async function saveSettings() {
+    const keyInput = document.getElementById('gemini-key');
+    const syncInput = document.getElementById('sync-key');
+    const configInput = document.getElementById('firebase-config');
+    
+    if (!keyInput) return;
+    
+    const geminiVal = keyInput.value.trim();
+    const syncKeyVal = syncInput ? syncInput.value.trim() : null;
+    let configVal = configInput ? configInput.value.trim() : null;
+
+    // If UI config is empty (hidden), check localStorage for the pre-filled default
+    if (!configVal) {
+        configVal = localStorage.getItem('firebase_config');
+    }
+
+    const btn = document.querySelector('#settings-modal .btn-primary');
+    if (btn) btn.innerHTML = '<span class="animate-pulse">Active Syncing...</span>';
+    
+    try {
+        // 1. Handle Cloud Sync Setup first
+        if (configVal && syncKeyVal) {
+            try {
+                const configParsed = JSON.parse(configVal);
+                localStorage.setItem('firebase_config', configVal);
+                const success = await PlannerStorage.initCloud(configParsed, syncKeyVal);
+                if (!success) throw new Error("Cloud config error");
+            } catch (e) {
+                showToast("Firebase Config is not valid JSON.", "locked");
+                return;
+            }
+        } else if (!syncKeyVal && localStorage.getItem('sync_key')) {
+            // User cleared sync key
+            localStorage.removeItem('sync_key');
+            localStorage.removeItem('firebase_config');
+            location.reload(); // Hard reset to stop Firebase
+        }
+
+        // 2. Validate Gemini Key (if changed)
+        if (geminiVal && geminiVal !== PlannerStorage.get('gemini_api_key')) {
+            const val = geminiVal;
+            let lastError = null;
+
+            try {
+                // Use the 'models' list endpoint to verify the key without using generation quota
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${val}`);
+                
+                // 200 = Success, 429 = Valid key but quota hit. 
+                // Both prove the key is structurally correct and active.
+                if (response.ok || response.status === 429) {
+                    await PlannerStorage.set('gemini_api_key', val);
+                    const msg = response.status === 429 
+                        ? "Key added! 🚨 Note: You currently have 0 quota on this key." 
+                        : "Gemini API Key verified and saved! 🚀";
+                    showToast(msg, response.status === 429 ? "info" : "success");
+                    toggleSettings();
+                    return;
+                }
+                
+                const errData = await response.json().catch(() => ({}));
+                lastError = `API Error (${response.status}): ${errData.error ? errData.error.message : response.statusText}`;
+            } catch (err) {
+                lastError = err.message;
+            }
+            throw new Error(lastError || "Failed to validate API key");
+        }
+        
+        // 3. Success Feedback
+        showToast("Configurations synced and saved! 🚀", "success");
+        toggleSettings();
+        if (syncKeyVal) updateCloudStatus(true);
+    } catch (err) {
+        console.error("Gemini Validation Error:", err);
+        showToast(`Validation Failed: ${err.message}`, "locked");
+    } finally {
+        if (btn) btn.innerHTML = 'Save & Sync';
+    }
+}
+
+function updateCloudStatus(active) {
+    const el = document.getElementById('cloud-status');
+    if (!el) return;
+    const dot = el.querySelector('.status-dot');
+    const text = el.querySelector('span');
+    
+    if (active) {
+        dot.style.background = '#10b981';
+        dot.classList.add('animate-pulse');
+        text.textContent = 'Synced';
+        el.style.opacity = '1';
+    } else {
+        dot.style.background = '#64748b';
+        dot.classList.remove('animate-pulse');
+        text.textContent = 'Local';
+        el.style.opacity = '0.6';
+    }
+}
+
+document.addEventListener('cloudSynced', () => updateCloudStatus(true));
+
+
+/**
+ * Export data function
+ */
+function exportData() {
+    const data = {};
+    const excludedKeys = ['firebase_config', 'sync_key', 'gemini_api_key'];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!excludedKeys.includes(key)) {
+            data[key] = localStorage.getItem(key);
+        }
+    }
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+    const dt = new Date();
+    const fileName = `bcs_planner_backup_${dt.getFullYear()}${dt.getMonth()+1}${dt.getDate()}.json`;
+    
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", fileName);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    
+    showToast("Data exported successfully", "success");
+}

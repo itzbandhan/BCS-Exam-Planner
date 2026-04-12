@@ -1,0 +1,23 @@
+# OS & Editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+
+# Node (if ever used locally)
+node_modules/
+
+# Local dev server artifacts
+.antigravityignore
+
+# Sensitive data — never commit these
+# (Firebase config is hardcoded in index.html intentionally as a public project)
+# If you ever move to environment variables, add them here:
+# .env
+# .env.local

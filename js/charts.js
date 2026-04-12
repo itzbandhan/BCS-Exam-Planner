@@ -15,7 +15,7 @@ function initCharts() {
     if (_marksChart) { _marksChart.destroy(); _marksChart = null; }
     if (_timeChart)  { _timeChart.destroy();  _timeChart  = null; }
 
-    const textColor   = '#64748b';
+    const textColor   = '#94a3b8';
     const borderColor = 'rgba(6,13,31,0.8)';
 
     const baseOptions = {

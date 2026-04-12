@@ -9,10 +9,11 @@ function renderSubjects() {
     if (!tabsEl || !contentEl) return;
 
     tabsEl.innerHTML = '';
-    const keys = Object.keys(subjectsData);
+    const sData = window.subjectsData || {};
+    const keys = Object.keys(sData);
 
     keys.forEach((key, i) => {
-        const sub = subjectsData[key];
+        const sub = sData[key];
         const btn = document.createElement('button');
         btn.className   = 'subject-tab';
         btn.textContent = sub.shortTitle;
@@ -25,16 +26,17 @@ function renderSubjects() {
 
 function selectSubject(key) {
     // Update tab active state
-    document.querySelectorAll('.subject-tab').forEach(t => {
+    document.querySelectorAll('#subject-tabs .subject-tab').forEach(t => {
         t.classList.toggle('active-tab', t.dataset.key === key);
     });
 
-    const sub     = subjectsData[key];
+    const sData = window.subjectsData || {};
+    const sub   = sData[key];
     const targetEl = document.getElementById('subject-content');
     if (!targetEl) return;
 
     // Build mastery progress
-    const mastered = sub.targets.filter(t => localStorage.getItem(`mastery_${t.id}`) === 'true').length;
+    const mastered = sub.targets.filter(t => PlannerStorage.get(`mastery_${t.id}`) === 'true').length;
     const total    = sub.targets.length;
     const pct      = Math.round((mastered / total) * 100);
 
@@ -60,10 +62,11 @@ function selectSubject(key) {
             <!-- Target cards grid -->
             <div class="grid-responsive grid-md-2" style="gap: 1rem;">`;
 
-    sub.targets.forEach(target => {
-        const isMastered = localStorage.getItem(`mastery_${target.id}`) === 'true';
+    sub.targets.forEach((target, idx) => {
+        const isMastered = PlannerStorage.get(`mastery_${target.id}`) === 'true';
+        const staggerClass = idx < 8 ? `stagger-${idx + 1}` : '';
         html += `
-            <div class="target-card ${isMastered ? 'mastered' : ''}" onclick="toggleMastery('${target.id}', this, '${key}')" data-target-id="${target.id}" style="border-color:${isMastered ? sub.accentColor + '55' : 'var(--glass-border)'}">
+            <div class="target-card animate-fade-slide-up ${staggerClass} ${isMastered ? 'mastered' : ''}" onclick="toggleMastery('${target.id}', this, '${key}')" data-target-id="${target.id}" style="border-color:${isMastered ? sub.accentColor + '55' : 'var(--glass-border)'}">
                 <div class="flex items-start gap-3">
                     <div class="mastery-dot" style="background:${isMastered ? sub.accentColor : 'rgba(255,255,255,0.1)'}; ${isMastered ? `box-shadow: 0 0 10px ${sub.accentColor}66` : ''}; margin-top: 5px;"></div>
                     <div class="flex-1">
@@ -87,8 +90,33 @@ function selectSubject(key) {
 function toggleMastery(targetId, el, subjectKey) {
     const isMastered = el.classList.contains('mastered');
     const newState = !isMastered;
-    localStorage.setItem(`mastery_${targetId}`, newState);
+    PlannerStorage.set(`mastery_${targetId}`, newState);
+
+    if (newState) {
+        showToast("Target Mastered! +1 Knowledge", 'success');
+        
+        // Check if all targets in this subject are mastered
+        const sData = window.subjectsData || {};
+        const sub = sData[subjectKey];
+        if (sub) {
+            const totalMastered = sub.targets.filter(t => PlannerStorage.get(`mastery_${t.id}`) === 'true').length;
+            if (totalMastered === sub.targets.length && typeof triggerConfetti === 'function') {
+                triggerConfetti();
+                showToast(`${sub.shortTitle} Fully Mastered!`, 'success');
+            }
+        }
+    }
 
     // Regenerate subject view to refresh mastery count/progress
     selectSubject(subjectKey);
+    updateAllProgress(); // Global update
 }
+
+// Cloud Update listener
+PlannerStorage.addListener(() => {
+    if (document.getElementById('targets').classList.contains('active')) {
+        const activeTab = document.querySelector('.subject-tab.active-tab');
+        if (activeTab) selectSubject(activeTab.dataset.key);
+    }
+});
+

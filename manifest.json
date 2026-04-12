@@ -2,10 +2,11 @@
   "name": "BCS Exam Planner",
   "short_name": "BCS Planner",
   "description": "Tactical study dashboard for BSc CSNT 1st Semester exams.",
+  "categories": ["education", "productivity"],
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#060d1f",
-  "theme_color": "#6366f1",
+  "theme_color": "#060d1f",
   "icons": [
     {
       "src": "assets/icon.png",

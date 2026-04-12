@@ -3,7 +3,10 @@
 // (4 session blocks per day from 9 AM)
 // ============================================================
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = 'V2';
+
+const SECTIONS = ['overview', 'targets', 'timetable', 'survival', 'notes'];
+window.SECTIONS = SECTIONS;
 
 // Exam schedule (from PDF)
 const examSchedule = [
@@ -13,6 +16,7 @@ const examSchedule = [
     { date: 'Apr 22 (Wed)', subject: 'English',                     code: 'ENG 111',    target: new Date(2026, 3, 22, 13, 0, 0) },
     { date: 'Apr 23 (Thu)', subject: 'Principles of Programming',   code: 'BCSNT 6013', target: new Date(2026, 3, 23, 13, 0, 0) },
 ];
+window.examSchedule = examSchedule;
 
 // Section C high-weightage targets (from PDF)
 const subjectsData = {
@@ -70,7 +74,8 @@ const subjectsData = {
             { id: 'pop_t4', title: 'Syntax & Parsing',     desc: 'BNF, EBNF, Drawing Parse Trees and Abstract Syntax Trees (AST) from a given grammar.' }
         ]
     }
-};
+}
+window.subjectsData = subjectsData;
 
 // Daily timetable — 8 days, 4 sessions each
 const timetableData = [
@@ -147,6 +152,7 @@ const timetableData = [
         ]
     }
 ];
+window.timetableData = timetableData;
 
 // Evening review focus during exam week (from PDF)
 const eveningFocus = [
@@ -155,6 +161,7 @@ const eveningFocus = [
     { date: new Date(2026, 3, 21), night: 'Apr 21 (Tue) Night', subject: 'English',                   focus: 'Letter formats, Essay structure. Recover energy night.', color: 'rose' },
     { date: new Date(2026, 3, 22), night: 'Apr 22 (Wed) Night', subject: 'Principles of Programming', focus: 'Parse trees, OOP concepts, Concurrency, Prolog limits',  color: 'violet' },
 ];
+window.eveningFocus = eveningFocus;
 
 // Exam week morning review (NEW — from PDF)
 const morningReview = [
@@ -164,14 +171,18 @@ const morningReview = [
     { date: new Date(2026, 3, 22), morning: 'Apr 22 (Wed) Morn', subject: 'English',                  focus: 'Letter & essay format, vocabulary for formal writing', color: 'rose' },
     { date: new Date(2026, 3, 23), morning: 'Apr 23 (Thu) Morn', subject: 'Principles of Programming', focus: 'Prolog queries, lambda calculus steps, parse trees', color: 'violet' },
 ];
+window.morningReview = morningReview;
 
 // Motivational quotes (shown in rotating footer)
 const motivationalQuotes = [
     '"The secret of getting ahead is getting started." — Mark Twain',
     '"It always seems impossible until it\'s done." — Nelson Mandela',
     '"Success is the sum of small efforts, repeated day in and day out." — Robert Collier',
+    '"The best way to predict the future is to create it." — Peter Drucker',
+    '"It does not matter how slowly you go as long as you do not stop." — Confucius',
     '"Focus on the 15-mark questions. If you know them, everything else follows."',
     '"Don\'t practice until you get it right. Practice until you can\'t get it wrong."',
     '"Discipline is choosing between what you want now and what you want most."',
     '"One day at a time. One session at a time. You\'ve got this."',
 ];
+window.motivationalQuotes = motivationalQuotes;

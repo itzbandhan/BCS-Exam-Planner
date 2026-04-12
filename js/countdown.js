@@ -17,7 +17,8 @@ function updateCountdown() {
 
     // Find the NEXT upcoming exam
     const now = Date.now();
-    const nextExam = examSchedule.find(e => e.target.getTime() > now);
+    const eSchedule = window.examSchedule || [];
+    const nextExam = eSchedule.find(e => e.target.getTime() > now);
 
     if (!nextExam) {
         el.innerHTML = `<span class="text-2xl font-mono">EXAMS COMPLETE — GO CELEBRATE!</span>`;

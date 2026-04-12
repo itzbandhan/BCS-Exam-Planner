@@ -13,7 +13,7 @@
     <meta property="og:title" content="BCS Exam Planner">
     <meta property="og:description" content="Strategic study dashboard for BCS 1st Semester exams. Tactical tracking and offline support.">
     <meta property="og:image" content="assets/icon.png">
-    <meta property="og:url" content="https://prameshbhurtel.com.np">
+    <meta property="og:url" content="https://pramesh-bhurtel.github.io/BCS-Exam-Planner/">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="assets/icon.png">
 
@@ -29,29 +29,70 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Link to external libraries -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class', /* Not actively toggled, we use native CSS now */
-      }
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Modular CSS Boilerplate -->
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/notes.css">
+
+    <!-- Core Planner Logic & Storage -->
+    <script src="js/storage.js"></script>
+
+    <!-- Firebase SDK (Modular CDN via import map) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+          "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import { initializeApp } from "firebase/app";
+      import { getFirestore, doc, onSnapshot, setDoc, updateDoc, deleteField } from "firebase/firestore";
+      window.FirebaseApp = { initializeApp };
+      window.FirebaseFirestore = { getFirestore, doc, onSnapshot, setDoc, updateDoc, deleteField };
+      
+      // Pre-filled Firebase config for convenience
+      const DEFAULT_CONFIG = {
+        apiKey: "AIzaSyAbgO_Q6euLImJMjb1O2vu-gNUreD57eoQ",
+        authDomain: "bcs-planner.firebaseapp.com",
+        projectId: "bcs-planner",
+        storageBucket: "bcs-planner.firebasestorage.app",
+        messagingSenderId: "527521809185",
+        appId: "1:527521809185:web:659da6d965930e4a4a3460",
+        measurementId: "G-R3ZFQ3HV05"
+      };
+
+      // Auto-init logic
+      let savedConfig = localStorage.getItem('firebase_config');
+      const savedKey = localStorage.getItem('sync_key');
+      
+      if (!savedConfig && DEFAULT_CONFIG.apiKey) {
+          savedConfig = JSON.stringify(DEFAULT_CONFIG);
+          localStorage.setItem('firebase_config', savedConfig);
+      }
+
+      if (savedConfig && savedKey) {
+          try {
+              window.PlannerStorage.initCloud(JSON.parse(savedConfig), savedKey).then(() => {
+                  console.log("Cloud Sync Active");
+                  document.dispatchEvent(new CustomEvent('cloudSynced'));
+              });
+          } catch(e) {}
+      }
+    </script>
 </head>
 <body>
-    
-    <!-- Animated background -->
-    <canvas id="starfield"></canvas>
 
     <!-- Navigation -->
     <nav class="app-nav">
         <div class="fluid-container flex-row justify-between align-center">
             <div class="nav-logo">
-                BCS <span>PLANNER</span>
+                BCS <span>PLANNER</span> <sub class="text-[10px] font-bold text-indigo-400 bg-indigo-500 bg-opacity-10 px-1.5 py-0.5 rounded border border-indigo-500 border-opacity-30 tracking-tighter" style="vertical-align: super; margin-left: -5px;">V2</sub>
             </div>
             
             <div class="desktop-nav">
@@ -59,6 +100,20 @@
                 <button class="nav-btn touch-target" data-target="targets" onclick="nav('targets')">Target Topics</button>
                 <button class="nav-btn touch-target" data-target="timetable" onclick="nav('timetable')">Daily Plan</button>
                 <button class="nav-btn touch-target" data-target="survival" onclick="nav('survival')">Exam Protocol</button>
+                <button class="nav-btn touch-target" data-target="notes" onclick="nav('notes')">Notes & AI Hub</button>
+            </div>
+
+            <!-- Cloud Status Indicator (Desktop) -->
+            <div id="cloud-status" class="hide-on-mobile items-center gap-1 uppercase tracking-widest text-slate-500 opacity-60" style="font-size: 10px; font-weight: 700;">
+                <div class="status-dot" style="width:6px; height:6px; background:#64748b; border-radius:50%;"></div>
+                <span>Local</span>
+            </div>
+            
+            <!-- Navbar Right Actions -->
+            <div class="nav-actions hide-on-mobile">
+                <button class="icon-btn" onclick="toggleSettings()" aria-label="Settings">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
             </div>
             
             <!-- Mobile Menu Toggle -->
@@ -67,15 +122,21 @@
                 <svg id="icon-close" style="display: none;" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
             </button>
         </div>
-        
-        <!-- Mobile Dropdown -->
-        <div id="mobile-menu" class="mobile-menu">
-            <button class="mobile-nav-btn touch-target active" data-target="overview" onclick="nav('overview')">Overview</button>
-            <button class="mobile-nav-btn touch-target" data-target="targets" onclick="nav('targets')">Target Topics</button>
-            <button class="mobile-nav-btn touch-target" data-target="timetable" onclick="nav('timetable')">Daily Plan</button>
-            <button class="mobile-nav-btn touch-target" data-target="survival" onclick="nav('survival')">Exam Protocol</button>
-        </div>
     </nav>
+
+    <!-- Mobile Dropdown -->
+    <div id="mobile-menu" class="mobile-menu">
+        <button class="mobile-nav-btn touch-target active" data-target="overview" onclick="nav('overview')">Overview</button>
+        <button class="mobile-nav-btn touch-target" data-target="targets" onclick="nav('targets')">Target Topics</button>
+        <button class="mobile-nav-btn touch-target" data-target="timetable" onclick="nav('timetable')">Daily Plan</button>
+        <button class="mobile-nav-btn touch-target" data-target="survival" onclick="nav('survival')">Exam Protocol</button>
+        <button class="mobile-nav-btn touch-target" data-target="notes" onclick="nav('notes')">Notes & AI Hub</button>
+        <div style="width: 50%; height: 1px; background: var(--glass-border); margin-block: 0.5rem;"></div>
+        <button class="mobile-nav-btn touch-target flex-row justify-center gap-2" onclick="toggleSettings(); toggleMobileMenu();">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            System Settings
+        </button>
+    </div>
 
     <main class="fluid-container main-content">
 
@@ -274,26 +335,117 @@
             </div>
         </section>
 
+        <!-- SECTION: NOTES -->
+        <section id="notes" class="view-section">
+            <div class="mb-8 pb-4" style="border-bottom: 1px solid var(--glass-border)">
+                <h1 class="text-4xl font-bold font-display tracking-tight text-gradient mb-2">Notes & AI Hub</h1>
+                <p class="text-lg" style="color: var(--text-muted)">Draft rapid notes or paste concepts. Let Gemini AI synthesize a concise study brief.</p>
+            </div>
+
+            <!-- Subject Tabs for Notes (Reuse existing tab styles) -->
+            <div class="subject-tabs mb-6" id="notes-subject-tabs">
+                <!-- JS generated -->
+            </div>
+
+            <div class="notes-container h-full">
+                <!-- Left Pane: Editor -->
+                <div class="notes-editor-pane">
+                    <textarea id="note-editor" class="note-textarea" placeholder="Start typing your study notes here...\n\nExample:\n- OSI Model has 7 layers\n- TCP is connection-oriented, UDP is connectionless\n- Dijkstra's algorithm finds shortest path"></textarea>
+                    
+                    <div class="note-toolbar">
+                        <span class="word-count" id="note-word-count">0 words • 0 chars</span>
+                        <div class="flex items-center gap-2 flex-wrap justify-end">
+                            <button class="btn-primary text-xs" onclick="executeAICommand('summarize')">📝 Summarize</button>
+                            <button class="btn-primary text-xs" onclick="executeAICommand('explain')">🧠 ELI5</button>
+                            <button class="btn-primary text-xs" onclick="executeAICommand('flashcards')">⚡ Cards</button>
+                            <button class="btn-primary text-xs" onclick="executeAICommand('quiz')">🎯 Quiz Match</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Pane: AI Summary -->
+                <div class="notes-ai-pane">
+                    <div class="glass-card ai-summary-card">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-800">
+                            <svg width="20" height="20" fill="none" stroke="var(--accent-violet)" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                            <h3 class="font-bold text-lg">Notes & AI Hub</h3>
+                        </div>
+                        
+                        <div id="ai-loading" class="ai-loading">
+                            <div class="spinner"></div>
+                            <p class="text-sm text-slate-400 animate-pulse">Synthesizing maximum-yield summary...</p>
+                        </div>
+
+                        <div id="ai-content" class="ai-content markdown-body" style="max-height: 50vh; overflow-y: auto;">
+                            <p class="text-sm text-slate-500 italic mt-4">Select an AI module to process your notes. Responses will append here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="settings-modal">
+        <div class="settings-content">
+            <h2 class="text-2xl font-bold font-display mb-4 flex items-center gap-2">
+                System Parameters
+            </h2>
+            
+            <div class="mb-6">
+                <label for="gemini-key" class="block text-sm font-semibold text-slate-300 mb-2">Gemini API Key (for AI Summarization)</label>
+                <input type="password" id="gemini-key" class="input-field" placeholder="AIzaSy...">
+                <div class="flex justify-between items-center mt-2 flex-wrap gap-2">
+                    <p class="text-xs text-slate-500">Stored locally. Never sent to any server except Google directly.</p>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-indigo-400 underline pointer">Get Free API Key here →</a>
+                </div>
+            </div>
+
+            <div class="mb-6 p-4 rounded-lg bg-indigo-500 bg-opacity-5 border border-indigo-500 border-opacity-20">
+                <h3 class="text-sm font-bold text-indigo-400 mb-3 uppercase tracking-wider">Cloud Synchronization (Firebase)</h3>
+                
+                <div class="mb-4">
+                    <label for="sync-key" class="block text-xs font-semibold text-slate-400 mb-1">Global Sync Key</label>
+                    <input type="text" id="sync-key" class="input-field" placeholder="Enter a unique key (e.g. pramesh-777)">
+                    <p class="text-[10px] text-slate-500 mt-1">Unique ID to identify your cloud profile. Use same key on all devices.</p>
+                </div>
+
+                <!-- Firebase Config is now managed internally to prevent accidental changes -->
+                <input type="hidden" id="firebase-config">
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-secondary" onclick="toggleSettings()">Cancel</button>
+                <button class="btn-primary" onclick="saveSettings()">Save & Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Swipe Indicator Dots -->
     <!-- Back to Top FAB -->
-    <button id="fab-top" class="touch-target glass-card interactive" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top" style="position: fixed; bottom: 2rem; right: 2rem; padding: 0; min-width: 50px; border-radius: 50%; display: none; z-index: 80; align-items: center; justify-content: center; backdrop-filter: blur(12px); background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3);">
+    <button id="fab-top" class="touch-target glass-card interactive" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top" style="position: fixed; bottom: 2rem; right: 2rem; padding: 0; min-width: 3.125rem; border-radius: 50%; display: none; z-index: 80; align-items: center; justify-content: center; backdrop-filter: blur(0.75rem); background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3);">
         <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M5 15l7-7 7 7"></path></svg>
     </button>
 
-    <footer class="text-center" style="padding-block: 4rem; border-top: 1px solid var(--glass-border); margin-top: auto;">
+    <footer class="text-center mt-auto" style="padding-block: 4rem; border-top: 1px solid var(--glass-border);">
         <div class="fluid-container">
-            <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--text-dim);">Designed & Built by <a href="https://prameshbhurtel.com.np" target="_blank" class="hover:text-indigo-400 underline underline-offset-4">Pramesh Bhurtel</a></p>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Designed & Built by <a href="https://prameshbhurtel.com.np" target="_blank" class="text-indigo-400 underline underline-offset-4 pointer">Pramesh Bhurtel</a> — <span class="text-indigo-400 opacity-60">V2 Build</span></p>
         </div>
     </footer>
 
     <!-- JavaScript Scripts -->
-    <script src="js/data.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/countdown.js"></script>
-    <script src="js/targets.js"></script>
-    <script src="js/timetable.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/data.js?v=V2"></script>
+    <script src="js/utils.js?v=V2"></script>
+    <script src="js/charts.js?v=V2"></script>
+    <script src="js/countdown.js?v=V2"></script>
+    <script src="js/targets.js?v=V2"></script>
+    <script src="js/timetable.js?v=V2"></script>
+    <script src="js/notes.js?v=V2"></script>
+    <script src="js/effects.js?v=V2"></script>
+    <script src="js/app.js?v=V2"></script>
 </body>
 </html>
