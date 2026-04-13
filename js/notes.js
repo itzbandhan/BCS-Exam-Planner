@@ -51,7 +51,7 @@ const AI_PROMPTS = {
 };
 
 // --- API Resilience: Fetch with Exponential Backoff ---
-async function fetchWithRetry(url, options, maxRetries = 3) {
+async function fetchWithRetry(url, options, maxRetries = 7) {
     let retries = 0;
     while (retries < maxRetries) {
         try {
@@ -184,19 +184,29 @@ const QuizManager = {
                     <div class="text-[10px] uppercase tracking-widest text-slate-500">Analysis Points Earned</div>
                 </div>
 
-                <button class="btn-primary w-full justify-center" onclick="selectNoteSubject(currentNoteSubject)">
+                <button class="btn-primary w-full justify-center" onclick="resetAIHub()">
                     Return to Mission Hub
                 </button>
             </div>
         `;
         
         if (typeof triggerConfetti === 'function' && pct >= 70) triggerConfetti();
-        // Save history
-        PlannerStorage.set(`ai_history_${currentNoteSubject}`, aiContent.innerHTML);
+        // NOTE: We no longer save the "Session Complete" screen to history to keep the hub clean
     }
 };
 
 window.QuizManager = QuizManager;
+
+// Helper to reset AI view and clear history for current subject
+function resetAIHub() {
+    if (currentNoteSubject) {
+        PlannerStorage.set(`ai_history_${currentNoteSubject}`, '');
+        selectNoteSubject(currentNoteSubject);
+        
+        // Return to the main dashboard (Mission Hub)
+        if (typeof nav === 'function') nav('overview');
+    }
+}
 
 function selectNoteSubject(key) {
     currentNoteSubject = key;
@@ -388,10 +398,25 @@ window.executeAICommand = async function(mode) {
         
     } catch (err) {
         console.error("AI execution failed:", err);
-        showToast("Failed to process command. Check API key.", 'locked');
+        
+        let errorMsg = "Failed to process command. Check API key.";
+        if (err.message.includes("429") || err.message.includes("retries")) {
+            errorMsg = "AI Hub is currently overloaded. Please wait a moment and try again.";
+        } else if (err.message.includes("503") || err.message.includes("500")) {
+            errorMsg = "Google AI service is temporarily unavailable. Retrying later...";
+        }
+
+        showToast(errorMsg, 'locked');
+        
         const loadEl = document.getElementById(loadId);
         if (loadEl) {
-            loadEl.innerHTML = `<h4 class="font-bold text-rose-400 mb-2">${modeTitles[mode]} Failed</h4><p class="text-rose-300 text-sm">Error: ${err.message}</p>`;
+            loadEl.innerHTML = `
+                <div class="p-3 rounded border border-rose-500 border-opacity-30 bg-rose-500 bg-opacity-5">
+                    <h4 class="font-bold text-rose-400 mb-1">${modeTitles[mode]} Interrupted</h4>
+                    <p class="text-rose-300 text-xs">${err.message}</p>
+                    <p class="text-slate-500 text-[10px] mt-2 italic">Recommendation: Shorten your notes or wait 60s before retrying.</p>
+                </div>
+            `;
         }
     }
 }
