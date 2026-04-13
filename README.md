@@ -3,7 +3,6 @@
 A high-fidelity, interactive **Progressive Web App (PWA)** designed for **BSc CSNT 1st Semester** students. This dashboard is built for absolute focus, high-speed performance, and strategic exam tracking.
 
 ---
-
 ## 🚀 Key Features
 
 - **📱 App Installation**: Installable as a standalone mobile app on iOS and Android. No browser bars, full-screen experience.
