@@ -41,6 +41,9 @@
     <!-- Core Planner Logic & Storage -->
     <script src="js/storage.js"></script>
 
+    <!-- Configuration (Environment Variables) -->
+    <script type="module" src="js/config.js"></script>
+
     <!-- Firebase SDK (Modular CDN via import map) -->
     <script type="importmap">
       {
@@ -56,23 +59,15 @@
       window.FirebaseApp = { initializeApp };
       window.FirebaseFirestore = { getFirestore, doc, onSnapshot, setDoc, updateDoc, deleteField };
       
-      // Pre-filled Firebase config for convenience
-      // DEFAULT_CONFIG updated for security (API Key Removed)
-      const DEFAULT_CONFIG = {
-        apiKey: "AIzaSyAbgO_Q6euLImJMjb1O2vu-gNUreD57eoQ", 
-        authDomain: "bcs-planner.firebaseapp.com",
-        projectId: "bcs-planner",
-        storageBucket: "bcs-planner.firebasestorage.app",
-        messagingSenderId: "527521809185",
-        appId: "1:527521809185:web:659da6d965930e4a4a3460",
-        measurementId: "G-R3ZFQ3HV05"
-      };
+      // Load Firebase config from environment variables via AppConfig
+      // AppConfig is set by config.js, which reads from .env (development) or process.env (production)
+      const DEFAULT_CONFIG = window.AppConfig?.firebase || null;
 
       // Auto-init logic
       let savedConfig = localStorage.getItem('firebase_config');
       const savedKey = localStorage.getItem('sync_key');
       
-      if (!savedConfig && DEFAULT_CONFIG.apiKey) {
+      if (!savedConfig && DEFAULT_CONFIG && DEFAULT_CONFIG.apiKey) {
           savedConfig = JSON.stringify(DEFAULT_CONFIG);
           localStorage.setItem('firebase_config', savedConfig);
       }

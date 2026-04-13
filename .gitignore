@@ -17,7 +17,8 @@ node_modules/
 .antigravityignore
 
 # Sensitive data — never commit these
-# (Firebase config is hardcoded in index.html intentionally as a public project)
-# If you ever move to environment variables, add them here:
+# remove comment during production
 # .env
 # .env.local
+# .env.*.local
+# .env.production.local
